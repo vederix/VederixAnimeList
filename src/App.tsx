@@ -1,96 +1,122 @@
-import React, { useState, useMemo } from 'react';
-import { Film, Sparkles } from 'lucide-react';
-import { movies } from './data/movies';
-import { Movie } from './types/movie';
-import MovieCard from './components/MovieCard';
-import MovieModal from './components/MovieModal';
+import React, { useState, useEffect } from 'react';
+import { Play, Sparkles, TrendingUp } from 'lucide-react';
+import { Anime, JikanResponse } from './types/anime';
+import { jikanApi } from './services/jikanApi';
+import AnimeCard from './components/AnimeCard';
+import AnimeModal from './components/AnimeModal';
 import SearchBar from './components/SearchBar';
-import FilterBar from './components/FilterBar';
 import LoadingSkeleton from './components/LoadingSkeleton';
+import ErrorMessage from './components/ErrorMessage';
 
 function App() {
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [popularAnime, setPopularAnime] = useState<Anime[]>([]);
+  const [searchResults, setSearchResults] = useState<Anime[]>([]);
+  const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
-  const [selectedYear, setSelectedYear] = useState('');
-  const [minRating, setMinRating] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
-  // Simulate loading
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500);
-    return () => clearTimeout(timer);
+  // Load popular anime on component mount
+  useEffect(() => {
+    loadPopularAnime();
   }, []);
 
-  const genres = useMemo(() => {
-    const allGenres = movies.flatMap(movie => movie.genre);
-    return Array.from(new Set(allGenres)).sort();
-  }, []);
+  const loadPopularAnime = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response: JikanResponse = await jikanApi.getTopAnime(1, 24);
+      setPopularAnime(response.data);
+    } catch (err) {
+      setError('Failed to load popular anime. Please try again later.');
+      console.error('Error loading popular anime:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const years = useMemo(() => {
-    const allYears = movies.map(movie => movie.year);
-    return Array.from(new Set(allYears)).sort((a, b) => b - a);
-  }, []);
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      setSearchQuery('');
+      setSearchResults([]);
+      setCurrentPage(1);
+      return;
+    }
 
-  const filteredMovies = useMemo(() => {
-    return movies.filter(movie => {
-      const matchesSearch = movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          movie.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          movie.director.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesGenre = !selectedGenre || movie.genre.includes(selectedGenre);
-      const matchesYear = !selectedYear || movie.year.toString() === selectedYear;
-      const matchesRating = movie.rating >= minRating;
+    try {
+      setIsSearching(true);
+      setError(null);
+      setSearchQuery(query);
+      setCurrentPage(1);
+      
+      const response: JikanResponse = await jikanApi.searchAnime(query, 1, 24);
+      setSearchResults(response.data);
+      setHasNextPage(response.pagination.has_next_page);
+    } catch (err) {
+      setError('Failed to search anime. Please try again.');
+      console.error('Error searching anime:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
-      return matchesSearch && matchesGenre && matchesYear && matchesRating;
-    });
-  }, [searchTerm, selectedGenre, selectedYear, minRating]);
+  const loadMoreResults = async () => {
+    if (!searchQuery || !hasNextPage || isSearching) return;
 
-  const handleMovieClick = (movie: Movie) => {
-    setSelectedMovie(movie);
+    try {
+      setIsSearching(true);
+      const nextPage = currentPage + 1;
+      const response: JikanResponse = await jikanApi.searchAnime(searchQuery, nextPage, 24);
+      
+      setSearchResults(prev => [...prev, ...response.data]);
+      setCurrentPage(nextPage);
+      setHasNextPage(response.pagination.has_next_page);
+    } catch (err) {
+      console.error('Error loading more results:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAnimeClick = (anime: Anime) => {
+    setSelectedAnime(anime);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setTimeout(() => setSelectedMovie(null), 300);
+    setTimeout(() => setSelectedAnime(null), 300);
   };
 
+  const displayedAnime = searchQuery ? searchResults : popularAnime;
+  const isShowingSearchResults = searchQuery && searchResults.length > 0;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black text-white">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col lg:flex-row lg:items-center gap-6">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Film className="h-8 w-8 text-blue-500" />
-                <Sparkles className="h-4 w-4 text-purple-400 absolute -top-1 -right-1 animate-pulse" />
+                <Play className="h-8 w-8 text-purple-500" />
+                <Sparkles className="h-4 w-4 text-pink-400 absolute -top-1 -right-1 animate-pulse" />
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                CinemaHub
+              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+                VederixAnimeList
               </h1>
             </div>
             
             <div className="flex-1 lg:max-w-none">
               <SearchBar
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
+                onSearch={handleSearch}
+                isLoading={isSearching}
               />
             </div>
-          </div>
-          
-          <div className="mt-6">
-            <FilterBar
-              selectedGenre={selectedGenre}
-              selectedYear={selectedYear}
-              minRating={minRating}
-              onGenreChange={setSelectedGenre}
-              onYearChange={setSelectedYear}
-              onRatingChange={setMinRating}
-              genres={genres}
-              years={years}
-            />
           </div>
         </div>
       </header>
@@ -98,69 +124,93 @@ function App() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent">
-            Discover Amazing Movies
-          </h2>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Explore our curated collection of cinematic masterpieces from around the world
-          </p>
-        </div>
+        {!searchQuery && (
+          <div className="text-center mb-12">
+            <h2 className="text-4xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
+              Discover Amazing Anime
+            </h2>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Explore the world's most popular anime series and discover your next favorite show
+            </p>
+          </div>
+        )}
 
-        {/* Results Info */}
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="text-2xl font-semibold">
-            {isLoading ? 'Loading...' : `${filteredMovies.length} Movie${filteredMovies.length !== 1 ? 's' : ''} Found`}
-          </h3>
-          
-          {(searchTerm || selectedGenre || selectedYear || minRating > 0) && !isLoading && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedGenre('');
-                setSelectedYear('');
-                setMinRating(0);
-              }}
-              className="px-4 py-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-lg text-gray-300 hover:text-white hover:border-blue-500/50 transition-all duration-300"
-            >
-              Clear Filters
-            </button>
+        {/* Section Title */}
+        <div className="flex items-center gap-3 mb-8">
+          {isShowingSearchResults ? (
+            <>
+              <h3 className="text-2xl font-semibold">
+                Search Results for "{searchQuery}"
+              </h3>
+              <span className="text-gray-400">({searchResults.length} found)</span>
+            </>
+          ) : (
+            <>
+              <TrendingUp className="h-6 w-6 text-purple-400" />
+              <h3 className="text-2xl font-semibold">Popular Anime</h3>
+            </>
           )}
         </div>
 
-        {/* Movies Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {isLoading
-            ? Array.from({ length: 8 }).map((_, index) => (
-                <LoadingSkeleton key={index} />
-              ))
-            : filteredMovies.map((movie) => (
-                <MovieCard
-                  key={movie.id}
-                  movie={movie}
-                  onClick={() => handleMovieClick(movie)}
-                />
-              ))}
-        </div>
+        {/* Error Message */}
+        {error && (
+          <ErrorMessage 
+            message={error} 
+            onRetry={searchQuery ? () => handleSearch(searchQuery) : loadPopularAnime}
+          />
+        )}
+
+        {/* Anime Grid */}
+        {!error && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {(isLoading || isSearching) && displayedAnime.length === 0
+              ? Array.from({ length: 12 }).map((_, index) => (
+                  <LoadingSkeleton key={index} />
+                ))
+              : displayedAnime.map((anime) => (
+                  <AnimeCard
+                    key={anime.mal_id}
+                    anime={anime}
+                    onClick={() => handleAnimeClick(anime)}
+                  />
+                ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {isShowingSearchResults && hasNextPage && !isSearching && (
+          <div className="text-center mt-12">
+            <button
+              onClick={loadMoreResults}
+              className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors duration-300 transform hover:scale-105"
+            >
+              Load More Anime
+            </button>
+          </div>
+        )}
+
+        {/* Loading More Indicator */}
+        {isSearching && searchResults.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <LoadingSkeleton key={`loading-${index}`} />
+            ))}
+          </div>
+        )}
 
         {/* No Results */}
-        {!isLoading && filteredMovies.length === 0 && (
+        {searchQuery && !isSearching && searchResults.length === 0 && !error && (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">🎭</div>
-            <h3 className="text-2xl font-semibold mb-2">No movies found</h3>
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-2xl font-semibold mb-2">No anime found</h3>
             <p className="text-gray-400 mb-6">
-              Try adjusting your search criteria or filters
+              Try searching with different keywords or check your spelling
             </p>
             <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedGenre('');
-                setSelectedYear('');
-                setMinRating(0);
-              }}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors duration-300"
+              onClick={() => handleSearch('')}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold transition-colors duration-300"
             >
-              Reset Filters
+              Clear Search
             </button>
           </div>
         )}
@@ -170,20 +220,23 @@ function App() {
       <footer className="mt-16 border-t border-gray-800/50 bg-gray-900/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Film className="h-6 w-6 text-blue-500" />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              CinemaHub
+            <Play className="h-6 w-6 text-purple-500" />
+            <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+              VederixAnimeList
             </span>
           </div>
-          <p className="text-gray-400">
-            Discover, explore, and enjoy the world of cinema
+          <p className="text-gray-400 mb-2">
+            Discover and explore the world of anime
+          </p>
+          <p className="text-gray-500 text-sm">
+            Powered by Jikan API - The Unofficial MyAnimeList API
           </p>
         </div>
       </footer>
 
-      {/* Movie Modal */}
-      <MovieModal
-        movie={selectedMovie}
+      {/* Anime Modal */}
+      <AnimeModal
+        anime={selectedAnime}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
       />

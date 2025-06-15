@@ -1,33 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, X } from 'lucide-react';
 
 interface SearchBarProps {
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
+  onSearch: (query: string) => void;
+  isLoading?: boolean;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, onSearchChange }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isLoading }) => {
+  const [query, setQuery] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      onSearch(query.trim());
+    }
+  };
+
+  const handleClear = () => {
+    setQuery('');
+    onSearch('');
+  };
+
   return (
-    <div className="relative flex-1 max-w-md">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Search className="h-5 w-5 text-gray-400" />
+    <form onSubmit={handleSubmit} className="relative flex-1 max-w-2xl mx-auto">
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          placeholder="Search for anime..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          disabled={isLoading}
+          className="w-full pl-12 pr-12 py-4 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 text-lg disabled:opacity-50"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
-      <input
-        type="text"
-        placeholder="Search movies..."
-        value={searchTerm}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="w-full pl-10 pr-10 py-3 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
-      />
-      {searchTerm && (
-        <button
-          onClick={() => onSearchChange('')}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      )}
-    </div>
+    </form>
   );
 };
 
