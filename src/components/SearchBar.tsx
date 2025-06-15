@@ -4,9 +4,10 @@ import { Search, X } from 'lucide-react';
 interface SearchBarProps {
   onSearch: (query: string) => void;
   isLoading?: boolean;
+  placeholder: string;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isLoading }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isLoading, placeholder }) => {
   const [query, setQuery] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +30,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isLoading }) => {
         </div>
         <input
           type="text"
-          placeholder="Search for anime..."
+          placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           disabled={isLoading}

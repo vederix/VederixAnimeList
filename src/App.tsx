@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Play, Sparkles, TrendingUp } from 'lucide-react';
 import { Anime, JikanResponse } from './types/anime';
 import { jikanApi } from './services/jikanApi';
+import { useLanguage } from './hooks/useLanguage';
 import AnimeCard from './components/AnimeCard';
 import AnimeModal from './components/AnimeModal';
 import SearchBar from './components/SearchBar';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import ErrorMessage from './components/ErrorMessage';
+import LanguageToggle from './components/LanguageToggle';
 
 function App() {
+  const { language, toggleLanguage, t } = useLanguage();
   const [popularAnime, setPopularAnime] = useState<Anime[]>([]);
   const [searchResults, setSearchResults] = useState<Anime[]>([]);
   const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
@@ -32,7 +35,7 @@ function App() {
       const response: JikanResponse = await jikanApi.getTopAnime(1, 24);
       setPopularAnime(response.data);
     } catch (err) {
-      setError('Failed to load popular anime. Please try again later.');
+      setError(t.loadError);
       console.error('Error loading popular anime:', err);
     } finally {
       setIsLoading(false);
@@ -57,7 +60,7 @@ function App() {
       setSearchResults(response.data);
       setHasNextPage(response.pagination.has_next_page);
     } catch (err) {
-      setError('Failed to search anime. Please try again.');
+      setError(t.searchError);
       console.error('Error searching anime:', err);
     } finally {
       setIsSearching(false);
@@ -101,20 +104,39 @@ function App() {
       <header className="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Play className="h-8 w-8 text-purple-500" />
-                <Sparkles className="h-4 w-4 text-pink-400 absolute -top-1 -right-1 animate-pulse" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Play className="h-8 w-8 text-purple-500" />
+                  <Sparkles className="h-4 w-4 text-pink-400 absolute -top-1 -right-1 animate-pulse" />
+                </div>
+                <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+                  {t.appName}
+                </h1>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-                VederixAnimeList
-              </h1>
+              
+              <div className="lg:hidden">
+                <LanguageToggle 
+                  language={language} 
+                  onToggle={toggleLanguage} 
+                  t={t}
+                />
+              </div>
             </div>
             
             <div className="flex-1 lg:max-w-none">
               <SearchBar
                 onSearch={handleSearch}
                 isLoading={isSearching}
+                placeholder={t.searchPlaceholder}
+              />
+            </div>
+            
+            <div className="hidden lg:block">
+              <LanguageToggle 
+                language={language} 
+                onToggle={toggleLanguage} 
+                t={t}
               />
             </div>
           </div>
@@ -127,10 +149,10 @@ function App() {
         {!searchQuery && (
           <div className="text-center mb-12">
             <h2 className="text-4xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
-              Discover Amazing Anime
+              {t.heroTitle}
             </h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Explore the world's most popular anime series and discover your next favorite show
+              {t.heroSubtitle}
             </p>
           </div>
         )}
@@ -140,14 +162,14 @@ function App() {
           {isShowingSearchResults ? (
             <>
               <h3 className="text-2xl font-semibold">
-                Search Results for "{searchQuery}"
+                {t.searchResults} "{searchQuery}"
               </h3>
-              <span className="text-gray-400">({searchResults.length} found)</span>
+              <span className="text-gray-400">({searchResults.length} {t.found})</span>
             </>
           ) : (
             <>
               <TrendingUp className="h-6 w-6 text-purple-400" />
-              <h3 className="text-2xl font-semibold">Popular Anime</h3>
+              <h3 className="text-2xl font-semibold">{t.popularAnime}</h3>
             </>
           )}
         </div>
@@ -157,6 +179,7 @@ function App() {
           <ErrorMessage 
             message={error} 
             onRetry={searchQuery ? () => handleSearch(searchQuery) : loadPopularAnime}
+            t={t}
           />
         )}
 
@@ -172,6 +195,7 @@ function App() {
                     key={anime.mal_id}
                     anime={anime}
                     onClick={() => handleAnimeClick(anime)}
+                    t={t}
                   />
                 ))}
           </div>
@@ -184,7 +208,7 @@ function App() {
               onClick={loadMoreResults}
               className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors duration-300 transform hover:scale-105"
             >
-              Load More Anime
+              {t.loadMore}
             </button>
           </div>
         )}
@@ -202,15 +226,15 @@ function App() {
         {searchQuery && !isSearching && searchResults.length === 0 && !error && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-semibold mb-2">No anime found</h3>
+            <h3 className="text-2xl font-semibold mb-2">{t.noResults}</h3>
             <p className="text-gray-400 mb-6">
-              Try searching with different keywords or check your spelling
+              {t.noResultsDesc}
             </p>
             <button
               onClick={() => handleSearch('')}
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold transition-colors duration-300"
             >
-              Clear Search
+              {t.clearSearch}
             </button>
           </div>
         )}
@@ -222,14 +246,14 @@ function App() {
           <div className="flex items-center justify-center gap-2 mb-4">
             <Play className="h-6 w-6 text-purple-500" />
             <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-              VederixAnimeList
+              {t.appName}
             </span>
           </div>
           <p className="text-gray-400 mb-2">
-            Discover and explore the world of anime
+            {t.footerDesc}
           </p>
           <p className="text-gray-500 text-sm">
-            Powered by Jikan API - The Unofficial MyAnimeList API
+            {t.footerPowered}
           </p>
         </div>
       </footer>
@@ -239,6 +263,7 @@ function App() {
         anime={selectedAnime}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        t={t}
       />
     </div>
   );

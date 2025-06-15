@@ -6,9 +6,10 @@ interface AnimeModalProps {
   anime: Anime | null;
   isOpen: boolean;
   onClose: () => void;
+  t: any;
 }
 
-const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
+const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose, t }) => {
   if (!isOpen || !anime) return null;
 
   const getDisplayTitle = () => {
@@ -32,9 +33,22 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
     }
   };
 
+  const getStatusText = (status?: string) => {
+    switch (status?.toLowerCase()) {
+      case 'currently airing':
+        return t.currentlyAiring;
+      case 'finished airing':
+        return t.finishedAiring;
+      case 'not yet aired':
+        return t.notYetAired;
+      default:
+        return status;
+    }
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Unknown';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('id-ID', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -96,7 +110,7 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
                   <Star className="h-6 w-6 text-yellow-400 fill-current" />
                   <span className="text-2xl font-bold">{formatScore(anime.score)}</span>
                   {anime.scored_by && (
-                    <span className="text-sm">({anime.scored_by.toLocaleString()} users)</span>
+                    <span className="text-sm">({anime.scored_by.toLocaleString()} pengguna)</span>
                   )}
                 </div>
               )}
@@ -109,7 +123,7 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
               {anime.episodes && (
                 <div className="flex items-center gap-2">
                   <Play className="h-5 w-5" />
-                  <span>{anime.episodes} episodes</span>
+                  <span>{anime.episodes} {t.episodes}</span>
                 </div>
               )}
               {anime.duration && (
@@ -126,14 +140,14 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
         <div className="p-8">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              <h2 className="text-3xl font-bold text-white mb-6">Synopsis</h2>
+              <h2 className="text-3xl font-bold text-white mb-6">{t.synopsis}</h2>
               <p className="text-gray-300 leading-relaxed text-lg mb-8">
-                {anime.synopsis || 'No synopsis available.'}
+                {anime.synopsis || 'Sinopsis tidak tersedia.'}
               </p>
               
               {anime.background && (
                 <>
-                  <h3 className="text-2xl font-bold text-white mb-4">Background</h3>
+                  <h3 className="text-2xl font-bold text-white mb-4">{t.background}</h3>
                   <p className="text-gray-300 leading-relaxed mb-8">
                     {anime.background}
                   </p>
@@ -145,9 +159,9 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
               {/* Status */}
               {anime.status && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Status</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">{t.status}</h3>
                   <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getStatusColor(anime.status)}`}>
-                    {anime.status}
+                    {getStatusText(anime.status)}
                   </span>
                 </div>
               )}
@@ -155,10 +169,10 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
               {/* Aired */}
               {anime.aired && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Aired</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">{t.aired}</h3>
                   <p className="text-gray-300">
                     {formatDate(anime.aired.from)} 
-                    {anime.aired.to && ` to ${formatDate(anime.aired.to)}`}
+                    {anime.aired.to && ` sampai ${formatDate(anime.aired.to)}`}
                   </p>
                 </div>
               )}
@@ -166,7 +180,7 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
               {/* Studios */}
               {anime.studios && anime.studios.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Studios</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">{t.studios}</h3>
                   <div className="space-y-2">
                     {anime.studios.map((studio) => (
                       <p key={studio.mal_id} className="text-gray-300">{studio.name}</p>
@@ -178,7 +192,7 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
               {/* Producers */}
               {anime.producers && anime.producers.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Producers</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">{t.producers}</h3>
                   <div className="space-y-1">
                     {anime.producers.slice(0, 5).map((producer) => (
                       <p key={producer.mal_id} className="text-gray-300 text-sm">{producer.name}</p>
@@ -189,29 +203,29 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
 
               {/* Statistics */}
               <div>
-                <h3 className="text-lg font-semibold text-white mb-3">Statistics</h3>
+                <h3 className="text-lg font-semibold text-white mb-3">{t.statistics}</h3>
                 <div className="space-y-2 text-sm">
                   {anime.rank && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Rank:</span>
+                      <span className="text-gray-400">{t.rank}:</span>
                       <span className="text-white font-medium">#{anime.rank}</span>
                     </div>
                   )}
                   {anime.popularity && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Popularity:</span>
+                      <span className="text-gray-400">{t.popularity}:</span>
                       <span className="text-white font-medium">#{anime.popularity}</span>
                     </div>
                   )}
                   {anime.members && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Members:</span>
+                      <span className="text-gray-400">{t.members}:</span>
                       <span className="text-white font-medium">{anime.members.toLocaleString()}</span>
                     </div>
                   )}
                   {anime.favorites && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Favorites:</span>
+                      <span className="text-gray-400">{t.favorites}:</span>
                       <span className="text-white font-medium">{anime.favorites.toLocaleString()}</span>
                     </div>
                   )}
@@ -227,7 +241,7 @@ const AnimeModal: React.FC<AnimeModalProps> = ({ anime, isOpen, onClose }) => {
                   className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors duration-300"
                 >
                   <ExternalLink className="h-5 w-5" />
-                  View on MyAnimeList
+                  {t.viewOnMAL}
                 </a>
               </div>
             </div>

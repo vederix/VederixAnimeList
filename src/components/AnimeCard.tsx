@@ -5,9 +5,10 @@ import { Star, Calendar, Play, Users } from 'lucide-react';
 interface AnimeCardProps {
   anime: Anime;
   onClick: () => void;
+  t: any;
 }
 
-const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
+const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick, t }) => {
   const getDisplayTitle = () => {
     return anime.title_english || anime.title || 'Unknown Title';
   };
@@ -26,6 +27,19 @@ const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
         return 'bg-yellow-500';
       default:
         return 'bg-gray-500';
+    }
+  };
+
+  const getStatusText = (status?: string) => {
+    switch (status?.toLowerCase()) {
+      case 'currently airing':
+        return t.currentlyAiring;
+      case 'finished airing':
+        return t.finishedAiring;
+      case 'not yet aired':
+        return t.notYetAired;
+      default:
+        return status;
     }
   };
 
@@ -54,7 +68,7 @@ const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
         {/* Status Badge */}
         {anime.status && (
           <div className={`absolute top-3 left-3 ${getStatusColor(anime.status)}/90 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-xs font-semibold`}>
-            {anime.status}
+            {getStatusText(anime.status)}
           </div>
         )}
 
@@ -87,7 +101,7 @@ const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
           {anime.episodes && (
             <div className="flex items-center gap-1">
               <Play className="h-4 w-4" />
-              {anime.episodes} eps
+              {anime.episodes} {t.eps}
             </div>
           )}
           {anime.members && (
@@ -127,7 +141,7 @@ const AnimeCard: React.FC<AnimeCardProps> = ({ anime, onClick }) => {
         {anime.studios && anime.studios.length > 0 && (
           <div className="pt-3 border-t border-gray-800">
             <p className="text-xs text-gray-500">
-              Studio: <span className="text-gray-300 font-medium">{anime.studios[0].name}</span>
+              {t.studio}: <span className="text-gray-300 font-medium">{anime.studios[0].name}</span>
             </p>
           </div>
         )}
